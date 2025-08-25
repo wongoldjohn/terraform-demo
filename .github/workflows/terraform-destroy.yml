@@ -1,0 +1,72 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Choose 'all' to destroy all TF-managed resources, or 'selective' to destroy specific resources only"
+        type: choice
+        options: [all, selective]
+        required: true
+        default: all
+      targets:
+        description: "For selective mode: comma-separated Terraform resource addresses (e.g. aws_instance.demo_ec2,aws_security_group.demo_sg)"
+        required: false
+        default: ""
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan - destroy (all)
+        if: ${{ inputs.mode == 'all' }}
+        run: terraform plan -destroy -no-color
+
+      - name: Terraform Destroy - ALL
+        if: ${{ inputs.mode == 'all' }}
+        run: terraform destroy -auto-approve -no-color
+
+      - name: Parse targets input
+        id: parse
+        if: ${{ inputs.mode == 'selective' && inputs.targets != '' }}
+        run: |
+          # turn "a,b,c" into "-target=a -target=b -target=c"
+          IFS=',' read -ra ARR <<< "${{ inputs.targets }}"
+          OUT=""
+          for t in "${ARR[@]}"; do
+            TRIM=$(echo "$t" | xargs)
+            if [ -n "$TRIM" ]; then
+              OUT="$OUT -target=$TRIM"
+            fi
+          done
+          echo "args=$OUT" >> $GITHUB_OUTPUT
+
+      - name: Terraform Plan - destroy (selective)
+        if: ${{ inputs.mode == 'selective' && steps.parse.outputs.args != '' }}
+        run: terraform plan -destroy ${{ steps.parse.outputs.args }} -no-color
+
+      - name: Terraform Destroy - SELECTIVE
+        if: ${{ inputs.mode == 'selective' && steps.parse.outputs.args != '' }}
+        run: terraform destroy -auto-approve ${{ steps.parse.outputs.args }} -no-color
+
+      - name: Safety check (no targets provided)
+        if: ${{ inputs.mode == 'selective' && steps.parse.outputs.args == '' }}
+        run: |
+          echo "No targets provided for selective destroy. Nothing to do."
+          exit 1
