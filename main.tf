@@ -6,7 +6,7 @@ resource "aws_vpc" "demo_vpc" {
   tags = { Name = "demo-vpc" }
 }
 
-# Public Subnet（auto assign Public IP）
+# Public Subnet（auto assign Public/Private IP）
 resource "aws_subnet" "demo_subnet" {
   vpc_id                  = aws_vpc.demo_vpc.id
   cidr_block              = "10.0.1.0/24"
@@ -92,4 +92,5 @@ resource "aws_instance" "demo_ec2" {
 
   tags = { Name = "demo-ec2" }
 }
+
 
