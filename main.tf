@@ -1,24 +1,24 @@
 # VPC
 resource "aws_vpc" "demo_vpc" {
-  cidr_block           = "10.0.0.0/16"
+  cidr_block           = "10.1.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = { Name = "demo-vpc" }
+  tags = { Name = "demo-vpc-2" }
 }
 
 # Public Subnet（auto assign Public/Private IP）
 resource "aws_subnet" "demo_subnet" {
   vpc_id                  = aws_vpc.demo_vpc.id
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = "10.1.1.0/24"
   availability_zone       = "us-east-2a"
   map_public_ip_on_launch = true
-  tags = { Name = "demo-subnet" }
+  tags = { Name = "demo-subnet-2" }
 }
 
 # Internet Gateway
 resource "aws_internet_gateway" "demo_igw" {
   vpc_id = aws_vpc.demo_vpc.id
-  tags = { Name = "demo-igw" }
+  tags = { Name = "demo-igw-2" }
 }
 
 # Route Table（0.0.0.0/0 → IGW）
@@ -28,7 +28,7 @@ resource "aws_route_table" "demo_route_table" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.demo_igw.id
   }
-  tags = { Name = "demo-route-table" }
+  tags = { Name = "demo-route-table-2" }
 }
 
 resource "aws_route_table_association" "demo_rta" {
@@ -39,7 +39,7 @@ resource "aws_route_table_association" "demo_rta" {
 # Security Group（22/80/443）
 resource "aws_security_group" "demo_sg" {
   vpc_id = aws_vpc.demo_vpc.id
-  name   = "demo-sg"
+  name   = "demo-sg-2"
 
   ingress {
     from_port   = 22
@@ -69,7 +69,7 @@ resource "aws_security_group" "demo_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "demo-sg" }
+  tags = { Name = "demo-sg-2" }
 }
 
 # （optional） Amazon Linux 2 AMI（x86_64）
@@ -90,7 +90,8 @@ resource "aws_instance" "demo_ec2" {
   vpc_security_group_ids      = [aws_security_group.demo_sg.id]
   associate_public_ip_address = true
 
-  tags = { Name = "demo-ec2" }
+  tags = { Name = "demo-ec2-2" }
 }
+
 
 
